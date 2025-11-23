@@ -214,7 +214,7 @@ OUTPUT_PATH=./outputs/output.mp4
 # 配置
 N_INFERENCE_GPU=8 # 并行推理 GPU 数量
 CFG_DISTILLED=true # 使用 CFG 蒸馏模型进行推理，2倍加速
-SPARSE_ATTN=true # 使用稀疏注意力进行推理
+SPARSE_ATTN=false # 使用稀疏注意力进行推理
 SAGE_ATTN=false # 使用 SageAttention 进行推理
 MODEL_PATH=ckpts # 预训练模型路径
 REWRITE=true # 启用提示词重写

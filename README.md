@@ -210,7 +210,7 @@ OUTPUT_PATH=./outputs/output.mp4
 # Configuration
 N_INFERENCE_GPU=8 # Parallel inference GPU count
 CFG_DISTILLED=true # Inference with CFG distilled model, 2x speedup
-SPARSE_ATTN=true # Inference with sparse attention
+SPARSE_ATTN=false # Inference with sparse attention
 SAGE_ATTN=false # Inference with SageAttention
 MODEL_PATH=ckpts # Path to pretrained model
 REWRITE=true # Enable prompt rewriting
