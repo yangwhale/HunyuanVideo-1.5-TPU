@@ -118,19 +118,24 @@ pip install tencentcloud-sdk-python
 
 ## 5. 从源码编译 Flash Attention
 
-**关键步骤**：必须在 CUDA 12.9 环境下编译。
+**关键步骤**：必须在 CUDA 12.9 环境下编译，并强制从源码构建以确保ABI兼容性。
 
 ```bash
-# 确保 CUDA 12.9 环境变量正确设置
+# 确保 CUDA 12.9 环境变量正确设置并强制从源码编译
 export CUDA_HOME=/usr/local/cuda-12.9
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+export FLASH_ATTENTION_FORCE_BUILD=TRUE
+export TORCH_CUDA_ARCH_LIST="9.0"
 
-# 从源码编译 Flash Attention
+# 从源码编译 Flash Attention（约5-10分钟，请耐心等待）
 pip install flash-attn --no-build-isolation --no-cache-dir
 ```
 
-编译时间：约 5-10 分钟
+**重要说明**：
+- `FLASH_ATTENTION_FORCE_BUILD=TRUE` 强制从源码编译，避免使用预编译wheel
+- `TORCH_CUDA_ARCH_LIST="9.0"` 为H100 GPU指定计算能力
+- 编译时间约 5-10 分钟，请耐心等待不要中断
 
 ### 5.1 验证 Flash Attention
 
