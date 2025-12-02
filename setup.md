@@ -71,18 +71,16 @@ nvidia-smi      # 应显示 GPU 信息和驱动版本
 
 ## 3. 安装 PyTorch 2.8.0 (CUDA 12.9)
 
-官方要求：`torch>=2.6.0`。我们使用 PyTorch 2.8.0 配合 CUDA 12.9。
+官方要求：`torch>=2.6.0`。我们使用 PyTorch 2.8.0 配合 CUDA 12.9 以获得最佳兼容性。
 
 ```bash
-pip install torch==2.8.0+cu129 torchvision==0.23.0+cu129 --index-url https://download.pytorch.org/whl/cu129
+pip install torch==2.8.0+cu129 torchvision==0.23.0+cu129 torchaudio==2.8.0+cu129 --index-url https://download.pytorch.org/whl/cu129
 ```
-
-**⚠️ 重要提示**：安装requirements.txt时，由于依赖约束，PyTorch可能会被降级到2.6.0+cu124。这是正常现象，2.6.0满足项目要求（>=2.6.0）且完全兼容。如需保持2.8.0版本，请在安装requirements.txt后重新安装。
 
 **注意**：如果遇到版本不存在的错误，可以尝试：
 ```bash
 # 方案 1：安装最新的 cu129 版本
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu129
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu129
 
 # 方案 2：访问 PyTorch 官网获取最新命令
 # https://pytorch.org/get-started/locally/
@@ -96,8 +94,8 @@ python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA:', to
 
 应输出类似：
 ```
-PyTorch: 2.8.0+cu129 (或 2.6.0+cu124)
-CUDA: 12.9 (或 12.4)
+PyTorch: 2.8.0+cu129
+CUDA: 12.9
 GPU Available: True
 ```
 
@@ -118,26 +116,27 @@ pip install -r requirements.txt
 pip install tencentcloud-sdk-python
 ```
 
-## 5. 从源码编译 Flash Attention
-
-**关键步骤**：必须在 CUDA 12.9 环境下编译，并强制从源码构建以确保ABI兼容性。
+**⚠️ 重要**：安装requirements.txt后，需要重新安装PyTorch 2.8.0以确保版本一致性：
 
 ```bash
-# 确保 CUDA 12.9 环境变量正确设置并强制从源码编译
-export CUDA_HOME=/usr/local/cuda-12.9
-export PATH=$CUDA_HOME/bin:$PATH
-export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-export FLASH_ATTENTION_FORCE_BUILD=TRUE
-export TORCH_CUDA_ARCH_LIST="9.0"
-
-# 从源码编译 Flash Attention（约5-10分钟，请耐心等待）
-pip install flash-attn --no-build-isolation --no-cache-dir
+pip install torch==2.8.0+cu129 torchvision==0.23.0+cu129 torchaudio==2.8.0+cu129 --index-url https://download.pytorch.org/whl/cu129 --force-reinstall --no-deps
 ```
 
-**重要说明**：
-- `FLASH_ATTENTION_FORCE_BUILD=TRUE` 强制从源码编译，避免使用预编译wheel
-- `TORCH_CUDA_ARCH_LIST="9.0"` 为H100 GPU指定计算能力
-- 编译时间约 5-10 分钟，请耐心等待不要中断
+这一步确保PyTorch保持在2.8.0+cu129版本，不会被requirements.txt中的依赖降级。
+
+## 5. 安装 Flash Attention
+
+使用与PyTorch 2.8.0+cu129配套的Flash Attention版本：
+
+```bash
+pip install flash-attn
+```
+
+**说明**：
+- Flash Attention会自动适配当前安装的PyTorch版本
+- 安装时会自动从源码编译以确保ABI兼容性
+- 编译时间约 5-10 分钟，请耐心等待
+- 确保CUDA 12.9环境变量已正确配置（第2.1节）
 
 ### 5.1 验证 Flash Attention
 
@@ -367,14 +366,14 @@ bash run.sh
 **解决方案**：
 ```bash
 pip uninstall -y flash-attn
-rm -rf ~/.local/lib/python3.12/site-packages/flash_attn*
+pip install flash-attn
+```
 
-# 确保 CUDA 12.9 环境变量正确
-export CUDA_HOME=/usr/local/cuda-12.9
-export PATH=$CUDA_HOME/bin:$PATH
-export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-
-pip install flash-attn --no-build-isolation --no-cache-dir
+如果问题依然存在，确保CUDA环境变量正确：
+```bash
+echo $CUDA_HOME  # 应输出 /usr/local/cuda-12.9
+source ~/.bashrc
+pip install flash-attn
 ```
 
 ### Q2: CUDA 版本不匹配
@@ -468,19 +467,21 @@ export HF_ENDPOINT=https://hf-mirror.com
 **文档版本**: 4.0
 **创建日期**: 2025-12-01
 **最后更新**: 2025-12-02
-**适用系统**: Ubuntu 24.04 + CUDA 12.9 + PyTorch 2.6.0+
+**适用系统**: Ubuntu 24.04 + CUDA 12.9 + PyTorch 2.8.0+
 
 **经验证配置**：
 - **Ubuntu 24.04 LTS**
 - **CUDA 12.9**
-- **PyTorch 2.6.0+cu124** (requirements.txt安装后的版本，满足>=2.6.0要求)
-- **torchvision 0.21.0**
-- **Flash Attention 2.8.3** (从源码编译)
+- **PyTorch 2.8.0+cu129**
+- **torchvision 0.23.0+cu129**
+- **torchaudio 2.8.0+cu129**
+- **Flash Attention 2.8.3** (自动从源码编译)
 - **H100/A100 GPU**
 - **模型总大小**: 约360GB（包含T2V和I2V所需的所有模型）
 
 **关键经验**：
-1. Flash Attention必须强制从源码编译（`FLASH_ATTENTION_FORCE_BUILD=TRUE`）
-2. HF_HOME建议设为`/dev/shm/huggingface`以利用内存文件系统
-3. 模型下载支持断点续传，可中断后继续
-4. Glyph-SDXL-v2仅ModelScope提供，需使用modelscope命令下载
+1. 安装requirements.txt后需重新安装PyTorch 2.8.0以保持版本一致性
+2. Flash Attention直接`pip install flash-attn`即可，会自动适配PyTorch版本
+3. HF_HOME建议设为`/dev/shm/huggingface`以利用内存文件系统
+4. 模型下载支持断点续传，可中断后继续
+5. Glyph-SDXL-v2仅ModelScope提供，需使用modelscope命令下载
