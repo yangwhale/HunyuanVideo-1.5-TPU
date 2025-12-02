@@ -77,6 +77,8 @@ nvidia-smi      # 应显示 GPU 信息和驱动版本
 pip install torch==2.8.0+cu129 torchvision==0.23.0+cu129 --index-url https://download.pytorch.org/whl/cu129
 ```
 
+**⚠️ 重要提示**：安装requirements.txt时，由于依赖约束，PyTorch可能会被降级到2.6.0+cu124。这是正常现象，2.6.0满足项目要求（>=2.6.0）且完全兼容。如需保持2.8.0版本，请在安装requirements.txt后重新安装。
+
 **注意**：如果遇到版本不存在的错误，可以尝试：
 ```bash
 # 方案 1：安装最新的 cu129 版本
@@ -92,10 +94,10 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu129
 python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA:', torch.version.cuda); print('GPU Available:', torch.cuda.is_available())"
 ```
 
-应输出：
+应输出类似：
 ```
-PyTorch: 2.8.0+cu129
-CUDA: 12.9
+PyTorch: 2.8.0+cu129 (或 2.6.0+cu124)
+CUDA: 12.9 (或 12.4)
 GPU Available: True
 ```
 
@@ -164,26 +166,64 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 pip install -e . --no-build-isolation
 ```
 
-## 7. 配置模型自动下载
+## 7. 下载模型文件
 
-HunyuanVideo-1.5-TPU 会在首次运行时自动下载所需的模型文件。你只需要配置 HuggingFace 环境变量即可。
+### 7.1 安装下载工具
 
-### 7.1 配置 HuggingFace 环境变量
+```bash
+pip install -U "huggingface_hub[cli]" modelscope
+```
 
-在 `~/.bashrc` 中添加（如果之前没有添加）：
+### 7.2 配置 HuggingFace 环境变量
+
+获取HuggingFace Token：访问 https://huggingface.co/settings/tokens
+
+在 `~/.bashrc` 中添加：
 
 ```bash
 cat >> ~/.bashrc << 'EOF'
 
 # HuggingFace 配置
-export HF_HOME=/dev/shm  # 使用内存作为缓存目录，加快下载速度
-export HF_TOKEN=your_huggingface_token_here  # 替换为你的 HuggingFace token
+export HF_HOME=/dev/shm/huggingface  # 使用内存文件系统，提升性能
+export HF_TOKEN=your_huggingface_token_here  # 替换为实际token
 EOF
 
 source ~/.bashrc
 ```
 
-**注意**：程序首次运行时会自动下载所有模型文件（约 100-200GB），这可能需要较长时间，具体取决于你的网络速度。
+### 7.3 下载模型文件（约359GB，需要时间）
+
+**Text-to-Video 必需模型：**
+
+```bash
+cd ~/HunyuanVideo-1.5-TPU
+
+# 1. 主模型文件 (~338GB)
+hf download tencent/HunyuanVideo-1.5 --local-dir ./ckpts
+
+# 2. 文本编码器 Qwen2.5-VL-7B-Instruct (~16.6GB)
+hf download Qwen/Qwen2.5-VL-7B-Instruct --local-dir ./ckpts/text_encoder/llm
+
+# 3. byT5编码器 (~3.6GB)
+hf download google/byt5-small --local-dir ./ckpts/text_encoder/byt5-small
+
+# 4. Glyph-SDXL-v2 (~1.5GB，仅ModelScope提供)
+modelscope download --model AI-ModelScope/Glyph-SDXL-v2 --local_dir ./ckpts/text_encoder/Glyph-SDXL-v2
+```
+
+**Image-to-Video 可选模型：**
+
+Vision Encoder需要先申请访问权限（https://huggingface.co/black-forest-labs/FLUX.1-Redux-dev）：
+
+```bash
+# 批准后执行
+hf download black-forest-labs/FLUX.1-Redux-dev --local-dir ./ckpts/vision_encoder/siglip --token $HF_TOKEN
+```
+
+**下载提示：**
+- 所有下载工具支持断点续传，中断后重新运行命令即可继续
+- HuggingFace下载慢可使用镜像：`HF_ENDPOINT=https://hf-mirror.com`
+- ModelScope下载使用的是中国镜像，速度通常较快
 
 ## 8. 配置运行脚本
 
@@ -318,7 +358,7 @@ export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
 # HuggingFace 配置（必需）
-export HF_HOME=/dev/shm  # 使用内存作为缓存目录
+export HF_HOME=/dev/shm/huggingface  # 使用内存文件系统提升性能
 export HF_TOKEN=your_huggingface_token_here  # 替换为实际 token
 
 # （可选）中国镜像加速
@@ -329,15 +369,22 @@ export HF_ENDPOINT=https://hf-mirror.com
 
 ---
 
-**文档版本**: 3.0
+**文档版本**: 4.0
 **创建日期**: 2025-12-01
-**最后更新**: 2025-12-01
-**适用系统**: Ubuntu 24.04 + CUDA 12.9 + PyTorch 2.8.0
+**最后更新**: 2025-12-02
+**适用系统**: Ubuntu 24.04 + CUDA 12.9 + PyTorch 2.6.0+
 
-**标准配置**：
+**经验证配置**：
 - **Ubuntu 24.04 LTS**
 - **CUDA 12.9**
-- **PyTorch 2.8.0+cu129**
-- **torchvision 0.23.0+cu129**
+- **PyTorch 2.6.0+cu124** (requirements.txt安装后的版本，满足>=2.6.0要求)
+- **torchvision 0.21.0**
+- **Flash Attention 2.8.3** (从源码编译)
 - **H100/A100 GPU**
-- **模型自动下载**（通过 HuggingFace）
+- **模型总大小**: 约359GB (T2V必需) + Vision Encoder (I2V可选)
+
+**关键经验**：
+1. Flash Attention必须强制从源码编译（`FLASH_ATTENTION_FORCE_BUILD=TRUE`）
+2. HF_HOME建议设为`/dev/shm/huggingface`以利用内存文件系统
+3. 模型下载支持断点续传，可中断后继续
+4. Glyph-SDXL-v2仅ModelScope提供，需使用modelscope命令下载
