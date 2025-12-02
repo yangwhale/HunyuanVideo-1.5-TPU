@@ -21,7 +21,7 @@ OVERLAP_GROUP_OFFLOADING=true # 仅在组卸载启用时有效，会显著增加
 ENABLE_CACHE=true # 启用特征缓存进行推理。显著提升推理速度
 CACHE_TYPE=deepcache # 支持：deepcache, teacache, taylorcache
 ENABLE_SR=true # 启用超分辨率
-MODEL_PATH=ckpts # 预训练模型路径
+MODEL_PATH=/dev/shm/HunyuanVideo-1.5/ckpts # 预训练模型路径（使用内存文件系统）
 
 ~/.local/bin/torchrun --nproc_per_node=$N_INFERENCE_GPU generate.py \
   --prompt "$PROMPT" \
