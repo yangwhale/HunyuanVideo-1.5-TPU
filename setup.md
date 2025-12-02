@@ -315,6 +315,49 @@ bash run.sh
 
 成功运行后，生成的视频将保存到 `./outputs/output.mp4`。
 
+### 9.1 预期运行结果（8x H100 GPU）
+
+以下是在8x NVIDIA H100 GPU上的实际运行结果：
+
+**总耗时**: 约3分13秒（从模型加载到视频保存）
+
+**生成阶段统计**:
+- 模型加载: ~42秒（8个GPU并行加载）
+- 主视频生成: ~48秒（50步采样，480p）
+- 超分辨率: ~36秒（6步采样，480p→720p）
+
+**生成参数**:
+```
+提示词: "A girl holding a paper with words "Hello, world!""
+宽高比: 16:9
+初始分辨率: 848 x 480
+最终分辨率: 1280 x 720
+视频长度: 121帧
+采样步数: 50步 (主) + 6步 (SR)
+随机种子: 1
+```
+
+**输出文件** (保存在 `./outputs/` 目录):
+- `output.mp4` - 最终720p超分辨率视频
+- `output_before_sr.mp4` - 原始480p视频
+- `output_config.json` - 生成配置文件
+
+**性能指标**:
+- 主生成速度: ~1.05 it/s
+- SR生成速度: ~5.8 s/step
+- 使用Flash Attention 2.8.3
+- 启用组卸载和重叠优化
+
+**使用的模型组件**:
+- ✅ 主模型 (tencent/HunyuanVideo-1.5)
+- ✅ Qwen2.5-VL-7B-Instruct 文本编码器
+- ✅ byT5-small 编码器
+- ✅ Glyph-SDXL-v2 文本渲染
+- ✅ FLUX.1-Redux-dev Vision Encoder
+- ✅ 720p超分辨率模型
+
+**注意**: `destroy_process_group()` 警告可以忽略，这是PyTorch分布式训练的常见信息，不影响生成结果。
+
 ## 10. 常见问题
 
 ### Q1: Flash Attention 导入错误（undefined symbol）
