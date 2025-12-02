@@ -193,22 +193,51 @@ source ~/.bashrc
 
 ### 7.3 下载模型文件（约359GB，需要时间）
 
+**注意**：所有模型将下载到 `/dev/shm/HunyuanVideo-1.5/ckpts/` 目录（使用内存文件系统以提升性能）
+
+#### 7.3.1 GCS 快速下载（推荐）
+
+如果您有 Google Cloud Storage 访问权限，可以使用此方法快速下载预打包的模型：
+
+```bash
+# 安装 gcloud CLI（如果尚未安装）
+# 参考：https://cloud.google.com/sdk/docs/install
+
+# 从 GCS 下载完整模型包（约359GB）
+gcloud storage cp -r gs://chrisya-gpu-pg-ase1/HunyuanVideo-1.5 /dev/shm/
+
+# 创建软链接到项目目录（可选，便于访问）
+cd ~/HunyuanVideo-1.5-TPU
+ln -sf /dev/shm/HunyuanVideo-1.5/ckpts ./ckpts
+```
+
+**优势**：
+- 下载速度快（使用 Google Cloud 高速网络）
+- 一次下载完整模型包，无需分步骤下载
+- 自动验证数据完整性
+
+#### 7.3.2 从源下载（HuggingFace/ModelScope）
+
+如果无法访问 GCS，可以使用此方法从官方源逐个下载模型：
+
 **Text-to-Video 必需模型：**
 
 ```bash
-cd ~/HunyuanVideo-1.5-TPU
-
 # 1. 主模型文件 (~338GB)
-hf download tencent/HunyuanVideo-1.5 --local-dir ./ckpts
+hf download tencent/HunyuanVideo-1.5 --local-dir /dev/shm/HunyuanVideo-1.5/ckpts
 
 # 2. 文本编码器 Qwen2.5-VL-7B-Instruct (~16.6GB)
-hf download Qwen/Qwen2.5-VL-7B-Instruct --local-dir ./ckpts/text_encoder/llm
+hf download Qwen/Qwen2.5-VL-7B-Instruct --local-dir /dev/shm/HunyuanVideo-1.5/ckpts/text_encoder/llm
 
 # 3. byT5编码器 (~3.6GB)
-hf download google/byt5-small --local-dir ./ckpts/text_encoder/byt5-small
+hf download google/byt5-small --local-dir /dev/shm/HunyuanVideo-1.5/ckpts/text_encoder/byt5-small
 
 # 4. Glyph-SDXL-v2 (~1.5GB，仅ModelScope提供)
-modelscope download --model AI-ModelScope/Glyph-SDXL-v2 --local_dir ./ckpts/text_encoder/Glyph-SDXL-v2
+modelscope download --model AI-ModelScope/Glyph-SDXL-v2 --local_dir /dev/shm/HunyuanVideo-1.5/ckpts/text_encoder/Glyph-SDXL-v2
+
+# 创建软链接到项目目录
+cd ~/HunyuanVideo-1.5-TPU
+ln -sf /dev/shm/HunyuanVideo-1.5/ckpts ./ckpts
 ```
 
 **Image-to-Video 可选模型：**
@@ -217,7 +246,7 @@ Vision Encoder需要先申请访问权限（https://huggingface.co/black-forest-
 
 ```bash
 # 批准后执行
-hf download black-forest-labs/FLUX.1-Redux-dev --local-dir ./ckpts/vision_encoder/siglip --token $HF_TOKEN
+hf download black-forest-labs/FLUX.1-Redux-dev --local-dir /dev/shm/HunyuanVideo-1.5/ckpts/vision_encoder/siglip --token $HF_TOKEN
 ```
 
 **下载提示：**
@@ -227,7 +256,23 @@ hf download black-forest-labs/FLUX.1-Redux-dev --local-dir ./ckpts/vision_encode
 
 ## 8. 配置运行脚本
 
-### 8.1 修改 run.sh
+### 8.1 确保模型路径软链接已创建
+
+如果您按照第7节的方法下载了模型到 `/dev/shm/HunyuanVideo-1.5/ckpts/`，需要创建软链接：
+
+```bash
+cd ~/HunyuanVideo-1.5-TPU
+ln -sf /dev/shm/HunyuanVideo-1.5/ckpts ./ckpts
+```
+
+验证软链接：
+```bash
+ls -l ./ckpts  # 应显示: ckpts -> /dev/shm/HunyuanVideo-1.5/ckpts
+```
+
+**注意**：`run.sh` 中的 `MODEL_PATH=ckpts` 会通过此软链接指向 `/dev/shm/HunyuanVideo-1.5/ckpts/`
+
+### 8.2 修改 run.sh
 
 编辑 `~/HunyuanVideo-1.5-TPU/run.sh`：
 
@@ -239,9 +284,10 @@ REWRITE=false
 N_INFERENCE_GPU=8  # 如果是 8x H100
 
 # 其他配置保持默认
+# MODEL_PATH=ckpts  # 已通过软链接指向 /dev/shm/HunyuanVideo-1.5/ckpts/
 ```
 
-### 8.2 修改 torchrun 路径
+### 8.3 修改 torchrun 路径
 
 在 `run.sh` 中，将 `torchrun` 改为完整路径：
 
