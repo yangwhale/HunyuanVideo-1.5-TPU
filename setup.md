@@ -191,7 +191,7 @@ EOF
 source ~/.bashrc
 ```
 
-### 7.3 下载模型文件（约359GB，需要时间）
+### 7.3 下载模型文件（约360GB，需要时间）
 
 **注意**：所有模型将下载到 `/dev/shm/HunyuanVideo-1.5/ckpts/` 目录（使用内存文件系统以提升性能）
 
@@ -203,7 +203,7 @@ source ~/.bashrc
 # 安装 gcloud CLI（如果尚未安装）
 # 参考：https://cloud.google.com/sdk/docs/install
 
-# 从 GCS 下载完整模型包（约359GB）
+# 从 GCS 下载完整模型包（约360GB，包含所有必需模型）
 gcloud storage cp -r gs://chrisya-gpu-pg-ase1/HunyuanVideo-1.5 /dev/shm/
 
 # 创建软链接到项目目录（可选，便于访问）
@@ -240,14 +240,21 @@ cd ~/HunyuanVideo-1.5-TPU
 ln -sf /dev/shm/HunyuanVideo-1.5/ckpts ./ckpts
 ```
 
-**Image-to-Video 可选模型：**
+**Vision Encoder（必需模型，约1GB）：**
 
-Vision Encoder需要先申请访问权限（https://huggingface.co/black-forest-labs/FLUX.1-Redux-dev）：
+尽管Vision Encoder主要用于Image-to-Video功能，但即使在Text-to-Video模式下也需要加载此模型。
+
+需要先申请访问权限：
+1. 访问 https://huggingface.co/black-forest-labs/FLUX.1-Redux-dev
+2. 点击"Request Access"按钮并等待批准（通常几分钟内批准）
+3. 批准后执行下载：
 
 ```bash
-# 批准后执行
+# 5. Vision Encoder - FLUX.1-Redux-dev (~1GB)
 hf download black-forest-labs/FLUX.1-Redux-dev --local-dir /dev/shm/HunyuanVideo-1.5/ckpts/vision_encoder/siglip --token $HF_TOKEN
 ```
+
+**注意**：如果跳过此步骤，运行时会报错：`FileNotFoundError: /dev/shm/HunyuanVideo-1.5/ckpts/vision_encoder/siglip not found`
 
 **下载提示：**
 - 所有下载工具支持断点续传，中断后重新运行命令即可继续
@@ -427,7 +434,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 - **torchvision 0.21.0**
 - **Flash Attention 2.8.3** (从源码编译)
 - **H100/A100 GPU**
-- **模型总大小**: 约359GB (T2V必需) + Vision Encoder (I2V可选)
+- **模型总大小**: 约360GB（包含T2V和I2V所需的所有模型）
 
 **关键经验**：
 1. Flash Attention必须强制从源码编译（`FLASH_ATTENTION_FORCE_BUILD=TRUE`）
