@@ -21,12 +21,14 @@ if 'PYTORCH_CUDA_ALLOC_CONF' not in os.environ:
 
 import datetime
 import json
+import atexit
 
 import loguru
 import torch
 import argparse
 import einops
 import imageio
+from torch import distributed as dist
 
 from hyvideo.pipelines.hunyuan_video_pipeline import HunyuanVideo_1_5_Pipeline
 from hyvideo.commons.parallel_states import initialize_parallel_state
@@ -34,6 +36,14 @@ from hyvideo.commons.infer_state import initialize_infer_state
 
 parallel_dims = initialize_parallel_state(sp=int(os.environ.get('WORLD_SIZE', '1')))
 torch.cuda.set_device(int(os.environ.get('LOCAL_RANK', '0')))
+
+# Register cleanup function for distributed process group
+def cleanup_distributed():
+    """Clean up distributed resources before exit."""
+    if dist.is_initialized():
+        dist.destroy_process_group()
+
+atexit.register(cleanup_distributed)
 
 def save_video(video, path):
     if video.ndim == 5:
@@ -132,6 +142,10 @@ def generate_video(args):
     if not args.rewrite:
         rank0_log("Warning: Prompt rewriting is disabled. This may affect the quality of generated videos.", "WARNING")
 
+    # Add guidance_scale if specified
+    if args.guidance_scale is not None:
+        extra_kwargs['guidance_scale'] = args.guidance_scale
+    
     out = pipe(
         enable_sr=enable_sr,
         prompt=args.prompt,
@@ -322,6 +336,11 @@ def main():
         help='Save generation config file (default: true). '
              'Use --save_generation_config or --save_generation_config true/1 to enable, '
              '--save_generation_config false/0 to disable'
+    )
+    parser.add_argument(
+        '--guidance_scale', type=float, default=None,
+        help='Guidance scale for classifier-free guidance (default: None, uses model default). '
+             'Set to 1.0 to disable CFG, or higher values (e.g., 6.0) for stronger guidance'
     )
 
     args = parser.parse_args()

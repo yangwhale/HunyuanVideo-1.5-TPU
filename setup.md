@@ -357,6 +357,33 @@ bash run.sh
 
 **注意**: `destroy_process_group()` 警告可以忽略，这是PyTorch分布式训练的常见信息，不影响生成结果。
 
+### 9.2 性能测试记录表
+
+以下表格记录了不同配置参数下的性能测试结果，方便对比和调优：
+
+| 测试日期 | RESOLUTION | VIDEO_LENGTH | Step Time (稳定) | CFG_DISTILLED | SPARSE_ATTN | SAGE_ATTN | OVERLAP_GROUP_OFFLOADING | ENABLE_CACHE | CACHE_TYPE | 备注 |
+|---------|------------|--------------|-----------------|---------------|-------------|-----------|--------------------------|--------------|------------|------|
+| 2025-12-03 | 720p | 121 | 5.10-5.11s/it  | false | false | false | false | false | deepcache | 基础配置 |
+| 2025-12-03 | 720p | 121 | 5.1/4-5.1s/it  | false | false | false | false | true | deepcache | ENABLE_CACHE开启 |
+| 2025-12-03 | 480p | 121 | 1.47-1.48s/it  | false | false | false | false | false | deepcache | 480p基础配置 |
+| 2025-12-03 | 480p | 121 | 0.877-0.878s/it| true | false | false | false | false | deepcache | CFG_DISTILLED开启 |
+| 2025-12-03 | 720p | 121 | ~2.74s/it      | false | false | false | false | false | deepcache | guidance_scale=1.0 手动设置 |
+
+**表格说明**：
+- **RESOLUTION**: 视频分辨率（360p/480p/720p）
+- **VIDEO_LENGTH**: 视频帧数
+- **Step Time (稳定)**: 稳定状态下的每步耗时（排除第一步冷启动开销）
+  - 第一步包含 GPU 预热、内存分配、kernel 编译等，通常需 20-30秒
+  - 稳定速度更能反映实际推理性能
+  - 步数≥50时，冷启动影响可忽略，显示的就是稳定速度
+- **CFG_DISTILLED**: 是否使用 CFG 蒸馏模型
+- **SPARSE_ATTN**: 是否使用稀疏注意力（仅 720p 模型支持）
+- **SAGE_ATTN**: 是否使用 SageAttention
+- **OVERLAP_GROUP_OFFLOADING**: 是否启用组卸载重叠优化
+- **ENABLE_CACHE**: 是否启用特征缓存
+- **CACHE_TYPE**: 缓存类型（deepcache等）
+- **备注**: 其他重要信息或观察结果
+
 ## 10. 常见问题
 
 ### Q1: Flash Attention 导入错误（undefined symbol）
