@@ -368,6 +368,7 @@ bash run.sh
 | 2025-12-03 | 480p | 121 | 1.47-1.48s/it  | false | false | false | false | false | deepcache | 480p基础配置 |
 | 2025-12-03 | 480p | 121 | 0.877-0.878s/it| true | false | false | false | false | deepcache | CFG_DISTILLED开启 |
 | 2025-12-03 | 720p | 121 | ~2.74s/it      | false | false | false | false | false | deepcache | guidance_scale=1.0 手动设置 |
+| 2025-12-03 | 720p | 121 | 1.67s/it | false | false | **true** | false | false | deepcache | **SageAttention 启用，1.31x 加速** ⚡ |
 
 **表格说明**：
 - **RESOLUTION**: 视频分辨率（360p/480p/720p）
